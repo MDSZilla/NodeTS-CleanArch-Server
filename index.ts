@@ -24,21 +24,21 @@ app.use(cookieParser());
 const server = http.createServer(app);
 
 //Create a WS Socket Server
-const io = new Server(server, {
-    cors: {
-        origin: ["http://localhost:3000"],
-        methods: ["GET", "POST"],
-        credentials: true,
-    },
-});
+// const io = new Server(server, {
+//     cors: {
+//         origin: ["http://localhost:3000"],
+//         methods: ["GET", "POST"],
+//         credentials: true,
+//     },
+// });
 
 //Which PORT To deploy server on
 const PORT = 3001;
 
-
-io.on('connection', (socket) => {
-    console.log(`${socket.id} connected`);
-});
+// Enable this for WebSocket Functionality
+// io.on('connection', (socket) => {
+//     console.log(`${socket.id} connected`);
+// });
 
 app.get('/', (req, res) => {
     res.write(`<h1>Server Running on Port : ${PORT}</h1>`);
