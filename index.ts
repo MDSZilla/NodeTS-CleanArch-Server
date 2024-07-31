@@ -4,6 +4,7 @@ import cors from "cors";
 import bodyParser from 'body-parser';
 import { router } from './router/router';
 import { Server } from 'socket.io';
+import 'dotenv/config';
 
 const cookieParser = require("cookie-parser"); //Cookie Parser is required to parse and process Cookies
 
@@ -33,7 +34,7 @@ const server = http.createServer(app);
 // });
 
 //Which PORT To deploy server on
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 // Enable this for WebSocket Functionality
 // io.on('connection', (socket) => {
