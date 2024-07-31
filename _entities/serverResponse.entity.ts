@@ -17,7 +17,7 @@ export class ServerResponse<T>{
     response: T;
     error: ServerResponseError
 
-    constructor(response: T, status: ServerResponseStatus, error: ServerResponseError){
+    constructor(response: T, status: ServerResponseStatus, error: ServerResponseError = new ServerResponseError()){
         this.response = response;
         this.status = status;
         this.error = error;
