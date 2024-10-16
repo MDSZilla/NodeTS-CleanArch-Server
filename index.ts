@@ -72,7 +72,7 @@ io.on('connection', (socket) => {
 });
 
 app.get('/', (req, res) => {
-    res.write(`<h1>Stream Analytics Server Running on Port : ${PORT}</h1>`);
+    res.write(`<h1>Stream Analytics is Server Running on Port : ${PORT}</h1>`);
     res.end();
 });
 
