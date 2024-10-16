@@ -13,3 +13,251 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                    String    @id @default(cuid())
+  userName              String    @unique
+  nickName              String    @unique
+  emailAddress          String
+  userPassword          String
+  channel               Channel?
+  userRole              String    @default("User") // Roles = Admin, User, Moderator
+  isUserStreamer        Boolean   @default(false)
+  channelModOfChannels  Channel[] @relation("ChannelModerators") // Which Channels a User is Chat Moderator of
+  platformModOfChannels Channel[] @relation("PlatformModerators") // Which Channels a Moderator can Access for Moderation.
+  userRank              String    @default("Basic") // Basic | TBD
+  userCoins             Int       @default(0)
+  userAdCredits         Int       @default(0)
+  userCart              Cart?
+
+  followingChannels ChannelAnalytics[] @relation("follower")
+  viewedChannels    ChannelAnalytics[] @relation("viewer")
+  chattedInChannels ChannelAnalytics[] @relation("chatter")
+}
+
+model UserAnalytics {
+  id          String  @id @default(cuid())
+  userIp      String?
+  userCountry String?
+  userCity    String?
+  userDevice  String?
+  timestamp   DateTime?
+  userId String
+}
+
+model Channel {
+  id                        String    @id @default(cuid())
+  channelName               String    @unique
+  arn                       String    @unique
+  playbackURL               String
+  ingestEndpoint            String
+  streamKey                 String
+  stopCount                 Int?
+  lastStopped               String?
+  channelRank               String    @default("Basic") // Basic | Premium | Enterprise | Archived
+  adsEnabled                Boolean   @default(false)
+  adBlocks                  adBlock[]
+  avgAdBid                  Float?
+  insecureRTMP              Boolean   @default(false)
+  latencyMode               String    @default("NORMAL")
+  channelLogoURL            String    @default("")
+  channelLogoPosition       String    @default("top-right") // top-right top-left bottom-left bottom-right
+  channelLowerThirdURL      String    @default("")
+  channelLowerThirdPosition String    @default("top-right") // top-right top-left bottom-left bottom-right
+
+  channelOwnerID String    @unique
+  channelOwner   User      @relation(fields: [channelOwnerID], references: [userName], onDelete: Cascade)
+  chatRoom       Chatroom?
+
+  channelModerators  User[] @relation("ChannelModerators")
+  platformModerators User[] @relation("PlatformModerators")
+
+  channelAnalytics ChannelAnalytics?
+}
+
+model adBlock {
+  id String @id @default(cuid())
+
+  blockChannelName String
+  blockChannel     Channel @relation(fields: [blockChannelName], references: [channelName], onDelete: Cascade)
+
+  blockName     String
+  blockType     String // Fixed | Bid
+  blockAvgBid   Float? @default(1)
+  blockInterval Int    @default(15)
+
+  blockSlots blockSlot[]
+  adsInBlock AdSchedules[]
+}
+
+model blockSlot {
+  id String @id @default(cuid())
+
+  slotStartTime DateTime
+  slotEndTime   DateTime
+  slotPrice     Float
+
+  blockId String
+  block   adBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+}
+
+model Chatroom {
+  id       String  @id @default(cuid())
+  roomName String  @unique
+  arn      String  @unique
+  channel  Channel @relation(fields: [roomName], references: [channelName], onDelete: Cascade)
+}
+
+model ChannelAnalytics {
+  id String @id @default(cuid())
+
+  channelName String  @unique
+  channel     Channel @relation(fields: [channelName], references: [channelName], onDelete: Cascade)
+
+  // Global Analytics
+
+  // Follows
+  channelFollowers User[] @relation("follower")
+
+  // Viewers List
+  channelViewers User[] @relation("viewer")
+
+  // Chatters List
+  channelChatters User[] @relation("chatter")
+
+  // User Watch Time (Pending)
+}
+
+model StreamAnalytics {
+  channelName String
+  // StreamID used to recognize which stream is being analyzed, obtained from IVS Stream Session
+  streamId    String @unique
+
+  streamTitle String? @default("Livestream Title")
+
+  // Time Streamed
+  streamStarted DateTime?
+  streamEnded   DateTime?
+
+  // Followers Gained
+  followersGained Int?
+  followersLost   Int?
+
+  // Chat Messages
+  chatMessages   Int?
+  uniqueChatters Int?
+
+  // Viewers
+  uniqueViewers Int?
+  maxViewers    Int?
+  avgViewers    Int?
+}
+
+model StreamVisits {
+  id          Int    @id @default(autoincrement())
+  channelName String
+
+  streamId        String
+  streamStartTime DateTime
+
+  viewerCount Int?
+  visitorName String?
+  visitedAt   DateTime?
+  leftAt      DateTime?
+}
+
+model streamSchedules {
+  id              Int      @id @default(autoincrement())
+  channelName     String
+  scheduleType    String   @default("Live") // Live or Content
+  startTime       DateTime
+  endTime         DateTime
+  whoStreams      String?
+  contentName     String?
+  contentURL      String?
+  contentDuration Int?
+}
+
+model AdSchedules {
+  id Int @id @default(autoincrement())
+
+  channelName      String
+  // adTags String[]
+  adPaymentStatus  String    @default("Unpaid") // Paid, Unpaid
+  adType           Boolean // 0 = Slot | 1 = Bidding
+  adTitle          String
+  adDescription    String
+  adButtonText     String
+  adButtonLink     String
+  adPopupImageLink String
+  adVideoLink      String
+  adStartTime      DateTime?
+  adEndTime        DateTime?
+  adBid            Float?
+  adDuration       Int?
+  adStatus         String    @default("Pending Approval")
+  adCreatedBy      String
+  adBlockID        String
+  adInBlock        adBlock   @relation(fields: [adBlockID], references: [id], onDelete: Cascade)
+
+  adAnalytic AdAnalytics?
+}
+
+model AdAnalytics {
+  id Int @unique
+
+  adImpressionCount   Int   @default(0) // Ad was Opened but Didnt Play
+  adViewCount         Int   @default(0) // Ad was Opened and Played
+  adClickThroughCount Int   @default(0) // Popup button was Clicked
+  adSkipCount         Int   @default(0) // Ad was Skipped
+  adCTR               Float @default(0) // Click Through Rate (Clicks / Impressions)
+
+  adSchedules AdSchedules @relation(fields: [id], references: [id], onDelete: Cascade)
+}
+
+model Products {
+  id String @id @default(cuid())
+
+  productName        String
+  productDescription String
+  productPrice       Int
+  productImage       String
+  productType        String @default("")
+}
+
+model Cart {
+  id           String           @id @default(cuid())
+  cartOwner    String           @unique
+  cartUser     User             @relation(fields: [cartOwner], references: [userName], onDelete: Cascade)
+  cartProducts ProductsInCart[]
+}
+
+model ProductsInCart {
+  id String @id @default(cuid())
+
+  cartOwner  String
+  linkedCart Cart   @relation(fields: [cartOwner], references: [cartOwner], onDelete: Cascade)
+  productId  String
+  productQty Int
+}
+
+model Orders {
+  id String @id @default(cuid())
+
+  paymentIntentId         String   @unique
+  orderPlacedBy           String
+  orderPrice              Float
+  productsFulfilled       String[]
+  productsUnfulfilled     String[]
+  orderFullfillmentStatus String // Complete, Pending, Failed
+}
+
+model Waitlist {
+  id    String @id @default(cuid())
+  email String @unique
+}
+
+model Feedback {
+  id       String @id @default(cuid())
+  email    String
+  feedback String
+}

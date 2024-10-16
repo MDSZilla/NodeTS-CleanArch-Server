@@ -25,28 +25,58 @@ app.use(cookieParser());
 const server = http.createServer(app);
 
 //Create a WS Socket Server
-// const io = new Server(server, {
-//     cors: {
-//         origin: ["http://localhost:3000"],
-//         methods: ["GET", "POST"],
-//         credentials: true,
-//     },
-// });
+const io = new Server(server, {
+    cors: {
+        origin: ["http://localhost:3000", "https://www.heylove.tv", "https://heylove.tv"],
+        methods: ["GET", "POST"],
+        credentials: true,
+    }, path: "/ws/streamanalytics-ms"
+});
 
 //Which PORT To deploy server on
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3016;
+
+type ChannelRooms = { [channelName: string]: Set<string> };
+
+const channelRooms: ChannelRooms = {};
 
 // Enable this for WebSocket Functionality
-// io.on('connection', (socket) => {
-//     console.log(`${socket.id} connected`);
-// });
+io.on('connection', (socket) => {
+    console.log(`${socket.id} connected`);
+
+    socket.on("INITIALIZE", (data: {channelName: string}) => {
+        const channelName: string = data.channelName;
+
+        socket.join(channelName);
+
+        if(!channelRooms[channelName]){
+            channelRooms[channelName] = new Set();
+        };
+
+        channelRooms[channelName].add(socket.id);
+        // console.log(channelRooms[channelName].size);
+        io.to(channelName).emit("VIEWCOUNT", channelRooms[channelName].size);
+    });
+
+    socket.on("disconnect", () => {
+        console.log(`${socket.id} disconnected`);
+        
+        for(const room in channelRooms){
+            if(channelRooms[room].has(socket.id)){
+                channelRooms[room].delete(socket.id);
+                io.to(room).emit("VIEWCOUNT", channelRooms[room].size);
+            }
+        };
+    });
+
+});
 
 app.get('/', (req, res) => {
-    res.write(`<h1>Server Running on Port : ${PORT}</h1>`);
+    res.write(`<h1>Stream Analytics Server Running on Port : ${PORT}</h1>`);
     res.end();
 });
 
-app.use("/api/v1", router);
+// app.use("/api/v1", router);
 
 server.listen(PORT, () => {
     console.log(`listening on *:${PORT}`);

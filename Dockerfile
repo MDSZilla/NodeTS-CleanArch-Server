@@ -1,4 +1,4 @@
-FROM node:latest AS base
+FROM node:20-alpine AS base
 
 #Installing Node Dependencies
 WORKDIR /
@@ -16,6 +16,6 @@ COPY ./ ./
 
 RUN npm install
 
-EXPOSE 3001
+EXPOSE 3016
 
 CMD HOSTNAME="0.0.0.0" npm run start
